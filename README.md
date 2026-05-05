@@ -88,6 +88,31 @@ cockroach start \
 cockroach init --certs-dir=certs --host=10.0.1.11:26257
 ```
 
+### 3.3. Web Panel Erişimi ve Kullanıcı Yetkilendirme
+
+Güvenli modda (Secure Mode) başlatılan bir cluster'da Web Dashboard'a erişmek için veritabanı üzerinde bir kullanıcı oluşturmalı ve bu kullanıcıya parola atamalısınız.
+
+#### 1. SQL Shell üzerinden kullanıcı oluşturma:
+Önce kümenize bağlanın ve bir yönetim kullanıcısı oluşturun:
+```sql
+-- Kullanıcıyı oluşturun
+CREATE USER admin_user WITH PASSWORD 'güçlü_bir_parola';
+
+-- Kullanıcıya admin yetkisi verin (Dashboard'daki tüm verileri görmesi için)
+GRANT admin TO admin_user;
+```
+
+#### 2. Panele Giriş:
+1. Tarayıcınızdan `https://<HAPROXY-IP-ADRESI>:8080` adresine gidin.
+   * *Not:* Güvenli modda panel `https` protokolü üzerinden çalışır. Sertifika uyarısı alırsanız "Gelişmiş -> Devam Et" diyerek geçebilirsiniz.
+2. Açılan ekranda oluşturduğunuz **Username** (`admin_user`) ve **Password** bilgilerini girerek giriş yapın.
+
+#### 3. Sertifika ile Otomatik Login (Alternatif):
+Eğer tarayıcınıza `client.root.crt` sertifikasını bir P12 dosyasına dönüştürüp yüklerseniz, panel sizi sertifikanızdan tanıyabilir. Ancak en pratik ve yaygın yöntem yukarıdaki **User/Password** yöntemidir.
+
+---
+
+
 ---
 
 ## ⚖️ 4. HAProxy Yapılandırması
