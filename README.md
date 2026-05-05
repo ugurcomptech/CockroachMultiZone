@@ -5,57 +5,66 @@ Bu proje; yüksek erişilebilirlik (High Availability), veri yerelliği (Localit
 ## 🏗️ Mimari ve Ağ Tasarımı
 
 ```mermaid
-graph TD
-    subgraph External_World [Dış Dünya / Clients]
-        User([Geliştirici / Uygulama])
+graph LR
+    %% External World - Light Grey
+    subgraph Clients [<b>DIŞ DÜNYA</b>]
+        User([Geliştirici])
         DBeaver[(DBeaver)]
         PHP[PHP App]
     end
 
-    subgraph Load_Balancer_Layer [Load Balancer Katmanı]
-        HAProxy[HAProxy Server<br/>10.0.1.50]
+    %% Load Balancer - Vibrant Orange
+    subgraph LB [<b>LOAD BALANCER</b>]
+        HAProxy[HAProxy Server<br/>192.168.1.50]
     end
 
-    subgraph Cluster_Network [CockroachDB Cluster]
-        direction TB
-        subgraph Rack_1 [Region: TR / Zone: Rack-1]
-            Node1[Node 1<br/>10.0.1.11]
-            Node2[Node 2<br/>10.0.1.12]
+    %% Cluster Nodes - Distinct Blues
+    subgraph Cluster [<b>COCKROACHDB CLUSTER</b>]
+        subgraph R1 [Rack 1]
+            N1[Node 1]
+            N2[Node 2]
         end
-        subgraph Rack_2 [Region: TR / Zone: Rack-2]
-            Node3[Node 3<br/>10.0.2.13]
-            Node4[Node 4<br/>10.0.2.14]
-            Node5[Node 5<br/>10.0.2.15]
+        subgraph R2 [Rack 2]
+            N3[Node 3]
+            N4[Node 4]
+            N5[Node 5]
         end
     end
 
-    %% Bağlantılar
-    User & DBeaver & PHP -- "SQL Request (Port 26257)" --> HAProxy
-    
-    HAProxy -- "Round Robin (Port 26258)" --> Node1
-    HAProxy -- "Round Robin (Port 26258)" --> Node2
-    HAProxy -- "Round Robin (Port 26258)" --> Node3
-    HAProxy -- "Round Robin (Port 26258)" --> Node4
-    HAProxy -- "Round Robin (Port 26258)" --> Node5
+    %% Connections with Colors
+    %% SQL Traffic (Green)
+    Clients -- "<font color='green'>SQL Port 26257</font>" --> HAProxy
+    HAProxy -- "<font color='green'>LB -> SQL 26258</font>" --> N1 & N2 & N3 & N4 & N5
 
-    %% Internal Senkronizasyon
-    Node1 <== "Internal Sync (Port 26257 / NIC 2)" ==> Node2
-    Node2 <== "Internal Sync (Port 26257 / NIC 2)" ==> Node3
-    Node3 <== "Internal Sync (Port 26257 / NIC 2)" ==> Node4
-    Node4 <== "Internal Sync (Port 26257 / NIC 2)" ==> Node5
-    
-    %% Health Checks
-    HAProxy -. "Health Check (Port 8080)" .-> Node1
-    HAProxy -. "Health Check (Port 8080)" .-> Node3
+    %% Internal Sync (Red - Stronger weight)
+    N1 <== "<font color='red'>Sync 26257 (NIC 2)</font>" ==> N2
+    N2 <== "<font color='red'>P2P Sync</font>" ==> N3
+    N3 <== "<font color='red'>P2P Sync</font>" ==> N4
+    N4 <== "<font color='red'>P2P Sync</font>" ==> N5
+
+    %% Health Checks (Purple - Dashed)
+    HAProxy -. "<font color='purple'>Health 8080</font>" .-> N1
+    HAProxy -. "Check" .-> N3
 
     %% Styling
-    style HAProxy fill:#f96,stroke:#333,stroke-width:2px
-    style Node1 fill:#69f,stroke:#333,stroke-width:2px
-    style Node2 fill:#69f,stroke:#333,stroke-width:2px
-    style Node3 fill:#6cf,stroke:#333,stroke-width:2px
-    style Node4 fill:#6cf,stroke:#333,stroke-width:2px
-    style Node5 fill:#6cf,stroke:#333,stroke-width:2px
-    style External_World fill:#eee,stroke:#999
+    style Clients fill:#f5f5f5,stroke:#d4d4d4,color:#333
+    style LB fill:#fff4e6,stroke:#fd7e14,stroke-width:2px,color:#d9480f
+    style HAProxy fill:#ffe8cc,stroke:#fd7e14
+    
+    style Cluster fill:#f0f7ff,stroke:#0052cc,color:#0052cc
+    style R1 fill:#e7f5ff,stroke:#228be6,stroke-dasharray: 5 5
+    style R2 fill:#e7f5ff,stroke:#228be6,stroke-dasharray: 5 5
+    
+    style N1 fill:#339af0,stroke:#1864ab,color:#fff
+    style N2 fill:#339af0,stroke:#1864ab,color:#fff
+    style N3 fill:#4dadf7,stroke:#1971c2,color:#fff
+    style N4 fill:#4dadf7,stroke:#1971c2,color:#fff
+    style N5 fill:#4dadf7,stroke:#1971c2,color:#fff
+
+    %% Link Colors
+    linkStyle 0,1,2,3,4,5 stroke:green,stroke-width:2px
+    linkStyle 6,7,8,9 stroke:red,stroke-width:3px
+    linkStyle 10,11 stroke:purple,stroke-width:1px
 ```
 
 Sistem performansı ve güvenliği için her sunucuda **3 fiziksel/sanal ağ kartı (NIC)** kullanılmıştır:
@@ -63,17 +72,17 @@ Sistem performansı ve güvenliği için her sunucuda **3 fiziksel/sanal ağ kar
 2. **Internal Data Network (Sync):** Node'ların kendi aralarındaki P2P veri senkronizasyonu için.
 3. **Public/SQL Network:** HAProxy ve istemci (Client) bağlantıları için.
 
-### 📍 Dağıtık Yapı (Multi-Zone)
-Küme, hata toleransını artırmak için iki farklı rack (zone) üzerine dağıtılmıştır:
+### 📍 Dağıtık Yapı ve Üç Katmanlı Ağ Mimarisi (Triple-NIC)
+Küme, ağ trafiğini izole etmek ve hata toleransını artırmak için üç farklı ağ katmanı üzerinden iki ayrı rack üzerine dağıtılmıştır:
 
-| Sunucu | Rol | IP Adresi (Örnek) | Bölge (Locality) |
-| :--- | :--- | :--- | :--- |
-| **HAProxy** | Load Balancer | `10.0.1.50` | Frontend |
-| **Node 1** | DB Node | `10.0.1.11` | region=tr,zone=rack1 |
-| **Node 2** | DB Node | `10.0.1.12` | region=tr,zone=rack1 |
-| **Node 3** | DB Node | `10.0.2.13` | region=tr,zone=rack2 |
-| **Node 4** | DB Node | `10.0.2.14` | region=tr,zone=rack2 |
-| **Node 5** | DB Node | `10.0.2.15` | region=tr,zone=rack2 |
+| Sunucu | Rol | Public/NAT IP (Management) | Internal Sync IP (P2P/Gossip) | SQL/HAProxy IP (Client) | Bölge (Locality) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **HAProxy** | Load Balancer | `192.168.1.50` | `10.0.1.100` | `172.16.1.50` | Frontend |
+| **Node 1** | DB Node | `192.168.1.11` | `10.0.1.11` | `172.16.1.11` | region=tr,zone=rack1 |
+| **Node 2** | DB Node | `192.168.1.12` | `10.0.1.12` | `172.16.1.12` | region=tr,zone=rack1 |
+| **Node 3** | DB Node | `192.168.1.13` | `10.0.2.13` | `172.16.1.13` | region=tr,zone=rack2 |
+| **Node 4** | DB Node | `192.168.1.14` | `10.0.2.14` | `172.16.1.14` | region=tr,zone=rack2 |
+| **Node 5** | DB Node | `192.168.1.15` | `10.0.2.15` | `172.16.1.15` | region=tr,zone=rack2 |
 
 ---
 
