@@ -13,7 +13,7 @@ Bu repository, **5 node’luk secure (TLS) CockroachDB cluster**’ının kurulu
 - **Load Balancer**: HAProxy (ön tarafa koyuldu)
 - **Amaç**: Dağıtık veritabanı mimarisi, high availability ve locality testleri
 
-## Mimari Diyagram
+# Mimari Diyagram
 HAProxy (Load Balancer)
 ↓ (26257)
 ├── Rack1 (zone=rack1)
@@ -26,44 +26,44 @@ HAProxy (Load Balancer)
 
 ## 1. CockroachDB İndirme ve Kurulum
 
-# Tüm node'larda çalıştır
+### Tüm node'larda çalıştır
 ```
 wget https://binaries.cockroachdb.com/cockroach-v23.1.0.linux-amd64.tgz
 ```
-# Arşivi aç
+### Arşivi aç
 ```
 tar -xvf cockroach-v23.1.0.linux-amd64.tgz
 ```
-# Binary'yi PATH'e taşı
+### Binary'yi PATH'e taşı
 ```
 sudo cp cockroach-v23.1.0.linux-amd64/cockroach /usr/local/bin/
 ```
-# GEOS kütüphanelerini kopyala (spatial fonksiyonlar için)
+### GEOS kütüphanelerini kopyala (spatial fonksiyonlar için)
 ```
 sudo cp -r cockroach-v23.1.0.linux-amd64/lib/* /usr/local/lib/
 sudo ldconfig
 ```
 
 
-# Adım 2: Klasör Oluşturma
+### Adım 2: Klasör Oluşturma
 ```
 mkdir -p ~/cockroach-data
 ```
 
 ## 2. Sertifika Oluşturma (Secure Mode)
-# Tüm node'larda klasör oluştur
+### Tüm node'larda klasör oluştur
 ```
 mkdir -p /home/ugur/certs
 mkdir -p /home/ugur/my-safe-directory
 chmod 700 /home/ugur/my-safe-directory
 ```
-# CA Sertifikası (Sadece Node1'de)
+### CA Sertifikası (Sadece Node1'de)
 ```
 cockroach cert create-ca \
   --certs-dir=/home/ugur/certs \
   --ca-key=/home/ugur/my-safe-directory/ca.key
 ```
-# Node Sertifikası (Tüm IP'ler)
+### Node Sertifikası (Tüm IP'ler)
 ```
 cockroach cert create-node \
   192.168.137.128 192.168.137.129 \
@@ -72,7 +72,7 @@ cockroach cert create-node \
   --certs-dir=/home/ugur/certs \
   --ca-key=/home/ugur/my-safe-directory/ca.key
 ```
-# Root Client Sertifikası
+### Root Client Sertifikası
 ```
 cockroach cert create-client root \
   --certs-dir=/home/ugur/certs \
