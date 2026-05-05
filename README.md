@@ -4,6 +4,58 @@ Bu proje; yüksek erişilebilirlik (High Availability), veri yerelliği (Localit
 
 ## 🏗️ Mimari ve Ağ Tasarımı
 
+graph TD
+    subgraph External_World [Dış Dünya / Clients]
+        User([Geliştirici / Uygulama])
+        DBeaver[(DBeaver)]
+        PHP[PHP App]
+    end
+
+    subgraph Load_Balancer_Layer [Load Balancer Katmanı]
+        HAProxy[HAProxy Server<br/>10.0.1.50]
+    end
+
+    subgraph Cluster_Network [CockroachDB Cluster]
+        direction TB
+        subgraph Rack_1 [Region: TR / Zone: Rack-1]
+            Node1[Node 1<br/>10.0.1.11]
+            Node2[Node 2<br/>10.0.1.12]
+        end
+        subgraph Rack_2 [Region: TR / Zone: Rack-2]
+            Node3[Node 3<br/>10.0.2.13]
+            Node4[Node 4<br/>10.0.2.14]
+            Node5[Node 5<br/>10.0.2.15]
+        end
+    end
+
+    %% Bağlantılar
+    User & DBeaver & PHP -- "SQL Request (Port 26257)" --> HAProxy
+    
+    HAProxy -- "Round Robin (Port 26258)" --> Node1
+    HAProxy -- "Round Robin (Port 26258)" --> Node2
+    HAProxy -- "Round Robin (Port 26258)" --> Node3
+    HAProxy -- "Round Robin (Port 26258)" --> Node4
+    HAProxy -- "Round Robin (Port 26258)" --> Node5
+
+    %% Internal Senkronizasyon
+    Node1 <== "Internal Sync (Port 26257 / NIC 2)" ==> Node2
+    Node2 <== "Internal Sync (Port 26257 / NIC 2)" ==> Node3
+    Node3 <== "Internal Sync (Port 26257 / NIC 2)" ==> Node4
+    Node4 <== "Internal Sync (Port 26257 / NIC 2)" ==> Node5
+    
+    %% Health Checks
+    HAProxy -. "Health Check (Port 8080)" .-> Node1
+    HAProxy -. "Health Check (Port 8080)" .-> Node3
+
+    %% Styling
+    style HAProxy fill:#f96,stroke:#333,stroke-width:2px
+    style Node1 fill:#69f,stroke:#333,stroke-width:2px
+    style Node2 fill:#69f,stroke:#333,stroke-width:2px
+    style Node3 fill:#6cf,stroke:#333,stroke-width:2px
+    style Node4 fill:#6cf,stroke:#333,stroke-width:2px
+    style Node5 fill:#6cf,stroke:#333,stroke-width:2px
+    style External_World fill:#eee,stroke:#999
+
 Sistem performansı ve güvenliği için her sunucuda **3 fiziksel/sanal ağ kartı (NIC)** kullanılmıştır:
 1. **Management Network:** SSH ve sistem güncellemeleri için.
 2. **Internal Data Network (Sync):** Node'ların kendi aralarındaki P2P veri senkronizasyonu için.
