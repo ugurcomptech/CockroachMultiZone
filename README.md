@@ -4,6 +4,7 @@ Bu proje; yüksek erişilebilirlik (High Availability), veri yerelliği (Localit
 
 ## 🏗️ Mimari ve Ağ Tasarımı
 
+```mermaid
 graph TD
     subgraph External_World [Dış Dünya / Clients]
         User([Geliştirici / Uygulama])
@@ -55,6 +56,7 @@ graph TD
     style Node4 fill:#6cf,stroke:#333,stroke-width:2px
     style Node5 fill:#6cf,stroke:#333,stroke-width:2px
     style External_World fill:#eee,stroke:#999
+```
 
 Sistem performansı ve güvenliği için her sunucuda **3 fiziksel/sanal ağ kartı (NIC)** kullanılmıştır:
 1. **Management Network:** SSH ve sistem güncellemeleri için.
