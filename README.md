@@ -35,6 +35,11 @@ Güvenlik ve performans için **Port Separation (Port Ayrımı)** stratejisi uyg
 
 ---
 
+## 🛠️ 1. Kurulum ve Hazırlık
+
+### 1.1. Binary ve Kütüphanelerin Yüklenmesi
+
+Tüm node'larda CockroachDB v23.1.0 kurulumu ve mekansal (spatial) veri desteği için GEOS kütüphanelerinin yapılandırılması:
 
 ```bash
 wget https://binaries.cockroachdb.com/cockroach-v23.1.0.linux-amd64.tgz
