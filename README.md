@@ -15,6 +15,7 @@ Bu repository, **5 node’luk secure (TLS) CockroachDB cluster**’ının kurulu
 
 # Mimari Diyagram
 HAProxy (Load Balancer)
+```
 ↓ (26257)
 ├── Rack1 (zone=rack1)
 │   ├── Node 1 → 192.168.137.128
@@ -23,6 +24,7 @@ HAProxy (Load Balancer)
 ├── Node 3 → 192.168.244.129
 ├── Node 4 → 192.168.244.132
 └── Node 5 → 192.168.244.133
+```
 
 ## 1. CockroachDB İndirme ve Kurulum
 
