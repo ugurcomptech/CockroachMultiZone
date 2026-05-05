@@ -1,9 +1,3 @@
-Harika bir başlangıç yapmışsın. Özellikle `Locality` ayarlarını (`region=istanbul,zone=rack1`) eklemen mimariyi çok daha profesyonel göstermiş. Dosyada eksik olan **Port Separation (26258)** mantığını, **3'lü Network Kartı** detayını, **HAProxy** konfigürasyonunu ve **Windows/PHP** bağlantı rehberini ekleyerek dosyayı tam teşekküllü bir "Engineering Documentation" haline getirdim.
-
-Aşağıdaki metni kopyalayıp `README.md` olarak kaydedebilirsin. (IP'leri senin isteğin üzerine gerçekçi ama anonim/random bloklarla değiştirdim).
-
----
-
 # 🚀 Multi-Node Distributed CockroachDB Cluster with HAProxy
 
 Bu proje; yüksek erişilebilirlik (High Availability), veri yerelliği (Locality) ve tam güvenlik (mTLS) prensiplerine dayalı, **5 node'lu dağıtık bir CockroachDB** kümesinin kurulum ve optimizasyon sürecini kapsar.
@@ -29,10 +23,18 @@ Küme, hata toleransını artırmak için iki farklı rack (zone) üzerine dağ�
 
 ---
 
-## 🛠️ 1. Kurulum ve Hazırlık
+### 🔌 Port Görev Dağılımı ve Trafik İzolasyonu
+Güvenlik ve performans için **Port Separation (Port Ayrımı)** stratejisi uygulanmıştır:
 
-### 1.1. Binary ve Kütüphanelerin Yüklenmesi
-Tüm node'larda CockroachDB v23.1.0 kurulumu ve mekansal (spatial) veri desteği için GEOS kütüphanelerinin yapılandırılması:
+| Port | Servis | Açıklama |
+| :--- | :--- | :--- |
+| **26257 (Dış)** | **HAProxy Entry** | **İstemci Girişi:** Windows, PHP veya DBeaver bu port üzerinden HAProxy'ye bağlanır. |
+| **26257 (İç)** | **Internal Node** | **Sync Portu:** Sadece node'ların kendi aralarındaki (Gossip/Raft) iletişimi için ayrılmıştır. |
+| **26258** | **SQL Engine** | **SQL Portu:** HAProxy, dışarıdan gelen talepleri node'ların bu özel SQL kapısına iletir. |
+| **8080** | **HTTP / Health** | **İzleme:** Dashboard ve HAProxy sağlık kontrolleri bu porttan yapılır. |
+
+---
+
 
 ```bash
 wget https://binaries.cockroachdb.com/cockroach-v23.1.0.linux-amd64.tgz
@@ -137,17 +139,5 @@ $pdo = new PDO($dsn, 'root');
 - **HAProxy Logları:** `tail -f /var/log/haproxy.log` komutu ile trafiği izleyin.
 - **Port Erişimi:** 26257 (Internal) ve 26258 (SQL) portlarının firewall tarafından izinli olduğundan emin olun.
 
----
-**Geliştirici:** Uğur
-**Lisans:** MIT
 
----
 
-### Neleri Düzelttim/Ekledim?
-1.  **Port 26258:** `cockroach start` komutuna `--sql-addr` parametresini ekledim. Bu olmadan HAProxy'yi 26258'e yönlendiremezdin.
-2.  **GEOS ve ldconfig:** Mekansal veriler için gereken kütüphane tanımlarını düzelttim.
-3.  **HAProxy Logları:** Global loglama ayarlarını ekledim.
-4.  **PHP ve Windows:** Senin için kritik olan bağlantı string'lerini dokümana dahil ettim.
-5.  **Locality Detayı:** `region=istanbul` yerine daha genel bir `region=tr` kullandım ama mantığı korudum.
-
-Dosya hazır! Repoya yüklediğinde pırıl pırıl duracaktır. Başka bir detay istersen buradayım.
