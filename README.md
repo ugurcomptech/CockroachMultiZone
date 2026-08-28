@@ -1,8 +1,8 @@
-# 🚀 Multi-Node Distributed CockroachDB Cluster with HAProxy
+# Multi-Node Distributed CockroachDB Cluster with HAProxy
 
 Bu proje; yüksek erişilebilirlik (High Availability), veri yerelliği (Locality) ve tam güvenlik (mTLS) prensiplerine dayalı, **5 node'lu dağıtık bir CockroachDB** kümesinin kurulum ve optimizasyon sürecini kapsar.
 
-## 🏗️ Mimari ve Ağ Tasarımı
+## Mimari ve Ağ Tasarımı
 
 ```mermaid
 graph LR
@@ -72,33 +72,37 @@ Sistem performansı ve güvenliği için her sunucuda **3 fiziksel/sanal ağ kar
 2. **Internal Data Network (Sync):** Node'ların kendi aralarındaki P2P veri senkronizasyonu için.
 3. **Public/SQL Network:** HAProxy ve istemci (Client) bağlantıları için.
 
-### 📍 Dağıtık Yapı ve Üç Katmanlı Ağ Mimarisi (Triple-NIC)
+### Dağıtık Yapı ve Üç Katmanlı Ağ Mimarisi (Triple-NIC)
 Küme, ağ trafiğini izole etmek ve hata toleransını artırmak için üç farklı ağ katmanı üzerinden iki ayrı rack üzerine dağıtılmıştır:
 
-| Sunucu | Rol | Public/NAT IP (Management) | Internal Sync IP (P2P/Gossip) | SQL/HAProxy IP (Client) | Bölge (Locality) |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **HAProxy** | Load Balancer | `192.168.1.50` | `10.0.1.100` | `172.16.1.50` | Frontend |
-| **Node 1** | DB Node | `192.168.1.11` | `10.0.1.11` | `172.16.1.11` | region=tr,zone=rack1 |
-| **Node 2** | DB Node | `192.168.1.12` | `10.0.1.12` | `172.16.1.12` | region=tr,zone=rack1 |
-| **Node 3** | DB Node | `192.168.1.13` | `10.0.2.13` | `172.16.1.13` | region=tr,zone=rack2 |
-| **Node 4** | DB Node | `192.168.1.14` | `10.0.2.14` | `172.16.1.14` | region=tr,zone=rack2 |
-| **Node 5** | DB Node | `192.168.1.15` | `10.0.2.15` | `172.16.1.15` | region=tr,zone=rack2 |
+```
+| Sunucu      | Rol           | Public/NAT IP (Management) | Internal Sync IP (P2P/Gossip) | SQL/HAProxy IP (Client) | Bölge (Locality)     |
+| :---------- | :------------ | :------------------------- | :---------------------------- | :---------------------- | :------------------- |
+| **HAProxy** | Load Balancer | `192.168.1.50`             | `10.0.1.100`                  | `172.16.1.50`           | Frontend             |
+| **Node 1**  | DB Node       | `192.168.1.11`             | `10.0.1.11`                   | `172.16.1.11`           | region=tr,zone=rack1 |
+| **Node 2**  | DB Node       | `192.168.1.12`             | `10.0.1.12`                   | `172.16.1.12`           | region=tr,zone=rack1 |
+| **Node 3**  | DB Node       | `192.168.1.13`             | `10.0.2.13`                   | `172.16.1.13`           | region=tr,zone=rack2 |
+| **Node 4**  | DB Node       | `192.168.1.14`             | `10.0.2.14`                   | `172.16.1.14`           | region=tr,zone=rack2 |
+| **Node 5**  | DB Node       | `192.168.1.15`             | `10.0.2.15`                   | `172.16.1.15`           | region=tr,zone=rack2 |
+```
 
 ---
 
-### 🔌 Port Görev Dağılımı ve Trafik İzolasyonu
+### Port Görev Dağılımı ve Trafik İzolasyonu
 Güvenlik ve performans için **Port Separation (Port Ayrımı)** stratejisi uygulanmıştır:
 
-| Port | Servis | Açıklama |
-| :--- | :--- | :--- |
-| **26257 (Dış)** | **HAProxy Entry** | **İstemci Girişi:** Windows, PHP veya DBeaver bu port üzerinden HAProxy'ye bağlanır. |
-| **26257 (İç)** | **Internal Node** | **Sync Portu:** Sadece node'ların kendi aralarındaki (Gossip/Raft) iletişimi için ayrılmıştır. |
-| **26258** | **SQL Engine** | **SQL Portu:** HAProxy, dışarıdan gelen talepleri node'ların bu özel SQL kapısına iletir. |
-| **8080** | **HTTP / Health** | **İzleme:** Dashboard ve HAProxy sağlık kontrolleri bu porttan yapılır. |
+```
+| Port            | Servis            | Açıklama                                                                                       |
+| :-------------- | :---------------- | :--------------------------------------------------------------------------------------------- |
+| **26257 (Dış)** | **HAProxy Entry** | **İstemci Girişi:** Windows, PHP veya DBeaver bu port üzerinden HAProxy'ye bağlanır.           |
+| **26257 (İç)**  | **Internal Node** | **Sync Portu:** Sadece node'ların kendi aralarındaki (Gossip/Raft) iletişimi için ayrılmıştır. |
+| **26258**       | **SQL Engine**    | **SQL Portu:** HAProxy, dışarıdan gelen talepleri node'ların bu özel SQL kapısına iletir.      |
+| **8080**        | **HTTP / Health** | **İzleme:** Dashboard ve HAProxy sağlık kontrolleri bu porttan yapılır.                        |
+```
 
 ---
 
-## 🛠️ 1. Kurulum ve Hazırlık
+## 1. Kurulum ve Hazırlık
 
 ### 1.1. Binary ve Kütüphanelerin Yüklenmesi
 
@@ -114,7 +118,7 @@ sudo ldconfig
 
 ---
 
-## 🔐 2. Güvenlik: TLS/SSL Sertifikasyon süreci
+## 2. Güvenlik: TLS/SSL Sertifikasyon süreci
 
 Cluster "Secure Mode" protokolünde çalışmaktadır. Sertifikalar oluşturulurken HAProxy IP'si SAN (Subject Alternative Name) olarak eklenmiştir.
 
@@ -129,7 +133,7 @@ cockroach cert create-node 10.0.1.11 10.0.1.12 10.0.2.13 10.0.2.14 10.0.2.15 10.
 
 ---
 
-## ⚙️ 3. Cluster Başlatma (Port Separation)
+## 3. Cluster Başlatma (Port Separation)
 
 Bu mimaride **Internal (26257)** ve **External SQL (26258)** portları birbirinden ayrılmıştır. 
 
@@ -175,10 +179,7 @@ Eğer tarayıcınıza `client.root.crt` sertifikasını bir P12 dosyasına dön�
 
 ---
 
-
----
-
-## ⚖️ 4. HAProxy Yapılandırması
+## 4. HAProxy Yapılandırması
 
 HAProxy, dışarıdan gelen SQL taleplerini (26257) alır ve node'ların özel SQL portlarına (26258) `roundrobin` algoritmasıyla dağıtır.
 
@@ -207,19 +208,19 @@ listen psql
 
 ---
 
-## 🔌 5. Bağlantı Rehberi
+## 5. Bağlantı Rehberi
 
-### 🐚 Linux CLI (Alias)
+### Linux CLI (Alias)
 ```bash
 alias crdb='cockroach sql --url "postgresql://root@10.0.1.50:26257/defaultdb?sslmode=verify-ca&sslrootcert=certs/ca.crt&sslcert=certs/client.root.crt&sslkey=certs/client.root.key"'
 ```
 
-### 🪟 Windows (PowerShell)
+### Windows (PowerShell)
 ```powershell
 .\cockroach.exe sql --url "postgresql://root@10.0.1.50:26257/defaultdb?sslmode=verify-ca&sslrootcert=certs\ca.crt&sslcert=certs\client.root.crt&sslkey=certs\client.root.key"
 ```
 
-### 🐘 PHP PDO Bağlantısı
+### PHP PDO Bağlantısı
 ```php
 $dsn = "pgsql:host=10.0.1.50;port=26257;dbname=defaultdb;sslmode=verify-ca;sslrootcert=C:/certs/ca.crt;sslcert=C:/certs/client.root.crt;sslkey=C:/certs/client.root.key";
 $pdo = new PDO($dsn, 'root');
@@ -227,10 +228,8 @@ $pdo = new PDO($dsn, 'root');
 
 ---
 
-## 🛡️ Hata Giderme (Troubleshooting)
+## Hata Giderme (Troubleshooting)
 - **Node Bağlantı Sorunu:** Sertifikaların SAN (IP) listesini kontrol edin.
 - **HAProxy Logları:** `tail -f /var/log/haproxy.log` komutu ile trafiği izleyin.
 - **Port Erişimi:** 26257 (Internal) ve 26258 (SQL) portlarının firewall tarafından izinli olduğundan emin olun.
-
-
-
+```
