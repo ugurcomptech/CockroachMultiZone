@@ -232,4 +232,3 @@ $pdo = new PDO($dsn, 'root');
 - **Node Bağlantı Sorunu:** Sertifikaların SAN (IP) listesini kontrol edin.
 - **HAProxy Logları:** `tail -f /var/log/haproxy.log` komutu ile trafiği izleyin.
 - **Port Erişimi:** 26257 (Internal) ve 26258 (SQL) portlarının firewall tarafından izinli olduğundan emin olun.
-```
